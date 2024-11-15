@@ -25,7 +25,6 @@ export default [{
     format: 'amd',
     sourcemap: true
   }],
-  external: ['yjs'],
   plugins: [
     nodeResolve({
       browser: true,
