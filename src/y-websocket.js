@@ -18,6 +18,7 @@ import * as url from 'lib0/url'
 import * as env from 'lib0/environment'
 
 export { Y };
+export { awarenessProtocol };
 export const messageSync = 0
 export const messageQueryAwareness = 3
 export const messageAwareness = 1
