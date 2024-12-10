@@ -17,8 +17,7 @@ import * as math from 'lib0/math'
 import * as url from 'lib0/url'
 import * as env from 'lib0/environment'
 
-export { Y };
-export { awarenessProtocol };
+export { Y, awarenessProtocol }
 export const messageSync = 0
 export const messageQueryAwareness = 3
 export const messageAwareness = 1

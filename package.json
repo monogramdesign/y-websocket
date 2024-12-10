@@ -1,5 +1,5 @@
 {
-  "name": "y-websocket-with-yjs-amd-test6",
+  "name": "y-websocket-with-yjs-amd-test8",
   "version": "2.0.4",
   "description": "Websockets provider for Yjs",
   "main": "./dist/y-websocket.amd.js",
