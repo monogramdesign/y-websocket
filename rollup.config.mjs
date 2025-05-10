@@ -1,4 +1,6 @@
-export default {
+import { nodeResolve } from '@rollup/plugin-node-resolve'
+
+export default [{
   input: './src/y-websocket.js',
   external: id => /^(lib0|yjs|y-protocols)/.test(id),
   output: [{
@@ -15,4 +17,19 @@ export default {
       return path
     }
   }]
-}
+}, {
+  input: './src/y-websocket.js',
+  output: [{
+    name: "y-websocket",
+    file: 'dist/y-websocket.amd.js',
+    format: 'amd',
+    sourcemap: true
+  }],
+  plugins: [
+    nodeResolve({
+      browser: true,
+      extensions: ['.js', '.ts'],
+      preferBuiltins: false
+    })
+  ]
+}]
