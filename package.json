@@ -2,7 +2,7 @@
   "name": "y-websocket-yjs-amd",
   "version": "3.0.0",
   "description": "Websockets provider for Yjs",
-	"main": "./dist/y-websocket.amd.js",
+  "main": "./dist/y-websocket.amd.js",
   "module": "./src/y-websocket.js",
   "types": "./dist/src/y-websocket.d.ts",
   "type": "module",
@@ -57,7 +57,7 @@
     "yjs": "^13.5.6"
   },
   "devDependencies": {
-		"@rollup/plugin-node-resolve": "^15.3.0",
+    "@rollup/plugin-node-resolve": "^15.3.0",
     "@types/lodash.debounce": "^4.0.9",
     "@types/node": "^22.14.0",
     "rollup": "^3.19.1",
