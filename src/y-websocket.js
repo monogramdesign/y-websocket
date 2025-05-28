@@ -12,7 +12,7 @@ import * as decoding from 'lib0/decoding'
 import * as syncProtocol from 'y-protocols/sync'
 import * as authProtocol from 'y-protocols/auth'
 import * as awarenessProtocol from 'y-protocols/awareness'
-import { Observable } from 'lib0/observable'
+import { ObservableV2 } from 'lib0/observable'
 import * as math from 'lib0/math'
 import * as url from 'lib0/url'
 import * as env from 'lib0/environment'
@@ -126,6 +126,50 @@ const readMessage = (provider, buf, emitSynced) => {
 }
 
 /**
+ * Outsource this function so that a new websocket connection is created immediately.
+ * I suspect that the `ws.onclose` event is not always fired if there are network issues.
+ *
+ * @param {WebsocketProvider} provider
+ * @param {WebSocket} ws
+ * @param {CloseEvent | null} event
+ */
+const closeWebsocketConnection = (provider, ws, event) => {
+  if (ws === provider.ws) {
+    provider.emit('connection-close', [event, provider])
+    provider.ws = null
+    ws.close()
+    provider.wsconnecting = false
+    if (provider.wsconnected) {
+      provider.wsconnected = false
+      provider.synced = false
+      // update awareness (all users except local left)
+      awarenessProtocol.removeAwarenessStates(
+        provider.awareness,
+        Array.from(provider.awareness.getStates().keys()).filter((client) =>
+          client !== provider.doc.clientID
+        ),
+        provider
+      )
+      provider.emit('status', [{
+        status: 'disconnected'
+      }])
+    } else {
+      provider.wsUnsuccessfulReconnects++
+    }
+    // Start with no reconnect timeout and increase timeout by
+    // using exponential backoff starting with 100ms
+    setTimeout(
+      setupWS,
+      math.min(
+        math.pow(2, provider.wsUnsuccessfulReconnects) * 100,
+        provider.maxBackoffTime
+      ),
+      provider
+    )
+  }
+}
+
+/**
  * @param {WebsocketProvider} provider
  */
 const setupWS = (provider) => {
@@ -148,36 +192,7 @@ const setupWS = (provider) => {
       provider.emit('connection-error', [event, provider])
     }
     websocket.onclose = (event) => {
-      provider.emit('connection-close', [event, provider])
-      provider.ws = null
-      provider.wsconnecting = false
-      if (provider.wsconnected) {
-        provider.wsconnected = false
-        provider.synced = false
-        // update awareness (all users except local left)
-        awarenessProtocol.removeAwarenessStates(
-          provider.awareness,
-          Array.from(provider.awareness.getStates().keys()).filter((client) =>
-            client !== provider.doc.clientID
-          ),
-          provider
-        )
-        provider.emit('status', [{
-          status: 'disconnected'
-        }])
-      } else {
-        provider.wsUnsuccessfulReconnects++
-      }
-      // Start with no reconnect timeout and increase timeout by
-      // using exponential backoff starting with 100ms
-      setTimeout(
-        setupWS,
-        math.min(
-          math.pow(2, provider.wsUnsuccessfulReconnects) * 100,
-          provider.maxBackoffTime
-        ),
-        provider
-      )
+      closeWebsocketConnection(provider, websocket, event)
     }
     websocket.onopen = () => {
       provider.wsLastMessageReceived = time.getUnixTime()
@@ -236,9 +251,9 @@ const broadcastMessage = (provider, buf) => {
  *   const doc = new Y.Doc()
  *   const provider = new WebsocketProvider('http://localhost:1234', 'my-document-name', doc)
  *
- * @extends {Observable<string>}
+ * @extends {ObservableV2<{ 'connection-close': (event: CloseEvent | null,  provider: WebsocketProvider) => any, 'status': (event: { status: 'connected' | 'disconnected' | 'connecting' }) => any, 'connection-error': (event: Event, provider: WebsocketProvider) => any, 'sync': (state: boolean) => any }>}
  */
-export class WebsocketProvider extends Observable {
+export class WebsocketProvider extends ObservableV2 {
   /**
    * @param {string} serverUrl
    * @param {string} roomname
@@ -264,7 +279,7 @@ export class WebsocketProvider extends Observable {
     disableBc = false
   } = {}) {
     super()
-    // ensure that url is always ends with /
+    // ensure that serverUrl does not end with /
     while (serverUrl[serverUrl.length - 1] === '/') {
       serverUrl = serverUrl.slice(0, serverUrl.length - 1)
     }
@@ -378,7 +393,7 @@ export class WebsocketProvider extends Observable {
       ) {
         // no message received in a long time - not even your own awareness
         // updates (which are updated every 15 seconds)
-        /** @type {WebSocket} */ (this.ws).close()
+        closeWebsocketConnection(this, /** @type {WebSocket} */ (this.ws), null)
       }
     }, messageReconnectTimeout / 10))
     if (connect) {
@@ -402,6 +417,7 @@ export class WebsocketProvider extends Observable {
   set synced (state) {
     if (this._synced !== state) {
       this._synced = state
+      // @ts-ignore
       this.emit('synced', [state])
       this.emit('sync', [state])
     }
@@ -485,7 +501,7 @@ export class WebsocketProvider extends Observable {
     this.shouldConnect = false
     this.disconnectBc()
     if (this.ws !== null) {
-      this.ws.close()
+      closeWebsocketConnection(this, this.ws, null)
     }
   }
 

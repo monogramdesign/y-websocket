@@ -1,35 +1,29 @@
 import { nodeResolve } from '@rollup/plugin-node-resolve'
 
-export default [{
-  input: './src/y-websocket.js',
-  external: id => /^(lib0|yjs|y-protocols)/.test(id),
-  output: [{
-    name: 'y-websocket',
-    file: 'dist/y-websocket.cjs',
-    format: 'cjs',
-    sourcemap: true,
-    paths: path => {
-      if (/^lib0\//.test(path)) {
-        return `lib0/dist${path.slice(4)}.cjs`
-      } else if (/^y-protocols\//.test(path)) {
-        return `y-protocols/dist${path.slice(11)}.cjs`
-      }
-      return path
-    }
+  export default [{
+    input: ['./src/y-websocket.js'],
+    external: id => /^(lib0|yjs|y-protocols|ws|http)/.test(id),
+    output: [{
+      dir: 'dist',
+      format: 'cjs',
+      sourcemap: true,
+      entryFileNames: '[name].cjs',
+      chunkFileNames: '[name]-[hash].cjs'
+    }]
+  }, {
+    input: './src/y-websocket.js',
+    output: [{
+      dir: 'dist',
+      format: 'amd',
+      sourcemap: true,
+      entryFileNames: '[name].amd.js',
+      chunkFileNames: '[name]-[hash].amd.js',
+    }],
+    plugins: [
+      nodeResolve({
+        browser: true,
+        extensions: ['.js', '.ts'],
+        preferBuiltins: false
+      })
+    ]
   }]
-}, {
-  input: './src/y-websocket.js',
-  output: [{
-    name: "y-websocket",
-    file: 'dist/y-websocket.amd.js',
-    format: 'amd',
-    sourcemap: true
-  }],
-  plugins: [
-    nodeResolve({
-      browser: true,
-      extensions: ['.js', '.ts'],
-      preferBuiltins: false
-    })
-  ]
-}]
